@@ -3,6 +3,9 @@ package com.example.listapplication
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.listapplication.adapter.ItemGroupAdapter
 import com.example.listapplication.model.Item
 import com.example.listapplication.model.ItemGroup
 import kotlinx.coroutines.launch
@@ -14,9 +17,17 @@ import java.net.URL
 
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var recyclerView: RecyclerView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        recyclerView = findViewById(R.id.mainRecycler)
+        recyclerView.layoutManager = LinearLayoutManager(this)
+
+        fetchData()
     }
 
     /*
@@ -31,11 +42,16 @@ class MainActivity : AppCompatActivity() {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
 
 
-                val items = parseItems(JSONArray(response))
-                    .sortedWith(compareBy<Item> { it.listId }.thenBy { it.name })
+                parseItems(JSONArray(response))
                     .groupBy { it.listId }
-                    .map { ItemGroup(it.key, it.value) }
+                    .map { (listId, items) ->
+                        val sortedItems = items.sortedBy { it.id }
+                        ItemGroup(listId, sortedItems)
+                    }
+                    .sortedBy { it.listId }
             }
+
+            recyclerView.adapter = ItemGroupAdapter(items)
         }
     }
 
@@ -46,8 +62,9 @@ class MainActivity : AppCompatActivity() {
         val list = mutableListOf<Item>()
         for (i in 0 until jsonArray.length()){
             val obj = jsonArray.getJSONObject(i)
-            val name = obj.optString("name", "")
-            if(name.isBlank()) continue
+            val name = obj.optString("name", "").trim()
+            if(name.isBlank() || name.equals("null", ignoreCase = true)) continue
+
             list.add(
                 Item(
                     id = obj.getInt("id"),
