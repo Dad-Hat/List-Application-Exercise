@@ -1,4 +1,4 @@
-# APPLICATION
+# The Purpose
 This app was developed for the fetch hiring team. 
 
 ## What it does
